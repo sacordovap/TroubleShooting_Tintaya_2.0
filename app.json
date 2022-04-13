@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "TroubleShooting Tintaya",
+    "name": "Troubleshooting\r\nTintaya",
     "slug": "TroubleShooting_Tintaya",
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "updates": {
