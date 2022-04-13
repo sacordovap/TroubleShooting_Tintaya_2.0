@@ -10,9 +10,8 @@ import SearchableDropDown from 'react-native-searchable-dropdown';
 import { Card, Modal, Button } from '@ui-kitten/components';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import ImageView from 'react-native-image-view';
 import { useNavigation } from '@react-navigation/native';
-
+import ImageView from 'react-native-image-view';
 //import { FAB, Portal, Provider } from 'react-native-paper';
 import ActionButton from 'react-native-action-button';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -22,7 +21,7 @@ import { SCLAlert, SCLAlertButton } from 'react-native-scl-alert';
 const ScreenDetalle = (props) => {
 
   const [estadoEdicion, setEstadoEdicion] = useState(true)
-
+  const [indicatorEstado, setIndicatorEstado] = useState(false)
   // FAB
   const [state, setState] = React.useState({ open: false });
   const onStateChange = ({ open }) => setState({ open });
@@ -39,26 +38,122 @@ const ScreenDetalle = (props) => {
 
   //OBTERNER DATA POR ID
   const [formData, setData] = useState();
+  const [miValorArregloFotos, setMiValorArregloFotos] = useState(0)
   const getDataByID = () => {
 
     const idUrl = props.route.params.id;
     getTroubleShootingById(idUrl).then(rpta => {
 
       setData(rpta.data.data)
+      setMiValorArregloFotos(rpta.data.data.attachments.length)
       buscarEquipoId(rpta.data.data.equipment_id)
     })
   }
+  const [pickedImagePath, setPickedImagePath] = useState('');
+  const [img1BotonApretado, setImg1BotonApretado] = useState(false)
+  const [dataFoto, setDataFoto] = useState(
+
+    {
+      id: 0,
+      attachmentable_id: props.route.params.id,
+      base64: "",
+      status: true
+    }
+
+  )
+  const showImagePicker = async () => {
+    // Apreguntar por los permisos
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert("Te has negado a permitir que esta aplicación acceda a tus fotos!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: false,
+      base64: true,
+    });
+    if (!result.cancelled) {
+      setPickedImagePath(result.uri);
+      setImg1BotonApretado(true)
+      const source = { uri: 'data:image/jpeg;base64,' + result.base64 };
+
+      // console.warn(source.uri);
+      dataFoto.base64 = source.uri
+      formData.attachments[0].status = false
+      formData.attachments.push(dataFoto)
+    }
+  }
+
+  const images = [
+    {
+      source: {
+        uri: pickedImagePath,
+      },
+      title: 'Evidencias',
+      width: 806,
+      height: 720,
+    },
+  ];
+
+  const [pickedImagePath2, setPickedImagePath2] = useState('');
+  const [img1BotonApretado2, setImg1BotonApretado2] = useState(false)
+  const [dataFoto2, setDataFoto2] = useState(
+    {
+      id: 0,
+      attachmentable_id: props.route.params.id,
+      base64: "",
+      status: true
+    }
+  )
+  const showImagePicker2 = async () => {
+    // Apreguntar por los permisos
+
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert("Te has negado a permitir que esta aplicación acceda a tus fotos!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: false,
+      base64: true,
+    });
+    if (!result.cancelled) {
+      setPickedImagePath2(result.uri);
+      setImg1BotonApretado2(true)
+      const source = { uri: 'data:image/jpeg;base64,' + result.base64 };
+      // console.warn(source.uri);
+      dataFoto2.base64 = source.uri
+      formData.attachments[1].status = false
+      formData.attachments.push(dataFoto2)
+      //formData.attachments[1] = dataFoto2
+    }
+
+  }
+  const images2 = [
+    {
+      source: {
+        uri: pickedImagePath2,
+      },
+      title: 'Evidencias',
+      width: 806,
+      height: 720,
+    },
+  ];
 
 
 
- 
+
   //GUARDAR CAMBIOS
   const handleSubmit = () => {
-
+    setIndicatorEstado(true);
     putTroubleshootingUpdate(formData, props.route.params.id).then((rpta) => {
 
       if (rpta.status === 200) {
-
+        setIndicatorEstado(false)
         navigation.replace('List')
         toast.show({
           title: "Registro Exitoso",
@@ -75,6 +170,8 @@ const ScreenDetalle = (props) => {
 
       }
     }).catch(err => {
+      console.log("ESTE ES EL ERROR DE LA CONSULTA")
+      console.log(err.response.data)
       toast.show({
         title: "Error",
         status: "error",
@@ -129,6 +226,8 @@ const ScreenDetalle = (props) => {
   }, [])
 
   useEffect(() => {
+    console.log('MI VALOR ARREGLO FOTOS')
+    console.log(miValorArregloFotos)
   })
 
   //Modal por Equipos
@@ -139,6 +238,9 @@ const ScreenDetalle = (props) => {
 
   const [misEquipos, setMisEquipos] = useState([])
   const [miValorModalEquipos, setMiValorModalEquipos] = useState('')
+  const [isImageViewVisible, setisImageViewVisible] = useState(false);
+  const [isImageViewVisible2, setisImageViewVisible2] = useState(false);
+
   const traerEquipos = () => {
 
     getEquiment().then(rpta => {
@@ -147,20 +249,21 @@ const ScreenDetalle = (props) => {
   }
 
   // DATEPICKER CONSTS
-  const [dateS, setDateS] = useState(new Date());
+  const [dateS, setDateS] = useState();
 
-  const [mode, setMode] = useState('date');
   const [apretoBotonFecha, setApretoBotonFecha] = useState(false);
   const [apretoBotonTime, setApretoBotonTime] = useState(false);
   const [showD, setShowD] = useState(false);
+  const [mode, setMode] = useState('date');
+
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate;
     console.log(currentDate)
-    
+
     setShowD(false);
     setDateS(currentDate);
+    formData.date = currentDate
   };
-
 
 
   const showMode = (currentMode) => {
@@ -184,6 +287,8 @@ const ScreenDetalle = (props) => {
   useEffect(() => {
     traerEquipos()
   }, [])
+
+
   return (
 
     <>
@@ -209,24 +314,25 @@ const ScreenDetalle = (props) => {
                 <View style={{ flexDirection: 'row', marginBottom: 10 }}>
                   <View style={{ width: '55%', marginRight: 5 }}><FormControl.Label _text={{
                     bold: true
-                  }}>Fecha {!estadoEdicion ? <Pressable style={{marginLeft:5}} onPress={showDatepicker}><Icon as={Ionicons} size={24} name='calendar-outline' /></Pressable> : null} </FormControl.Label>
-                    {showD && (
-                      <DateTimePicker
-                        testID="dateTimePicker"
-                        value={dateS}
-                        mode={mode}
-                        is24Hour={true}
-                        onChange={onChange}
-                      />
-                    )}
+                  }}>Fecha 
+                  {/* {!estadoEdicion ? 
+                  <Pressable style={{ marginLeft: 5 }} onPress={showDatepicker}>
+                    <Icon as={Ionicons} size={24} name='calendar-outline' /></Pressable> : null}  */}
+
+                  </FormControl.Label>
+
                     <Skeleton.Text px="4" lines={2} isLoaded={skeletonLoader}>
                       <Text style={{ backgroundColor: 'rgba(229, 227, 227, 0.9)', textAlign: 'center', borderRadius: 5, padding: 10 }}>{apretoBotonFecha ? (dateS.getDate() + '/' + (dateS.getMonth() + 1) + '/' + dateS.getFullYear()) : fecha}</Text>
                     </Skeleton.Text>
 
                   </View>
-                  <View style={{ width: '40%', marginLeft: 5}}><FormControl.Label _text={{
+                  <View style={{ width: '40%', marginLeft: 5 }}><FormControl.Label _text={{
                     bold: true
-                  }}>Hora{!estadoEdicion ? <Pressable style={{marginLeft:5}} onPress={showTimepicker}><Icon as={Ionicons} size={24} name='time-outline' /></Pressable> : null} </FormControl.Label>
+                  }}>Hora
+                  {/* {!estadoEdicion ? <Pressable style={{ marginLeft: 5 }} onPress={showTimepicker}>
+                    <Icon as={Ionicons} size={24} name='time-outline' /></Pressable> : null}  */}
+                    
+                    </FormControl.Label>
                     <Skeleton.Text px="4" lines={2} isLoaded={skeletonLoader}>
                       <Text style={{ backgroundColor: 'rgba(229, 227, 227, 0.9)', textAlign: 'center', borderRadius: 5, padding: 10 }}>{apretoBotonTime ? (dateS.getHours() + ':' + dateS.getMinutes()) : hora}</Text>
                     </Skeleton.Text>
@@ -234,7 +340,16 @@ const ScreenDetalle = (props) => {
 
 
                 </View>
+                {showD && (
+                  <DateTimePicker
+                    testID="dateTimePicker"
 
+                    value={dateS}
+                    mode={mode}
+                    is24Hour={true}
+                    onChange={onChange}
+                  />
+                )}
 
                 <FormControl.ErrorMessage _text={{
                   fontSize: 'xs'
@@ -280,7 +395,7 @@ const ScreenDetalle = (props) => {
                 <Skeleton.Text px="4" lines={2} isLoaded={skeletonLoader}>
 
                   {/* <Input defaultValue={estadoEdicion ?miEquipo: miValorModalEquipos } placeholder="" */}
-                  <Input defaultValue={miEquipo } placeholder=""
+                  <Input defaultValue={miEquipo} placeholder=""
                     // isDisabled={estadoEdicion}
                     isDisabled={true}
                   //Aqui falta un modal para cambiar de equipo.
@@ -420,19 +535,20 @@ const ScreenDetalle = (props) => {
                           alignItems: 'center',
                         }}>
                           <Skeleton h="100%" isLoaded={skeletonLoader}>
-                            <Image
-                              source={{ uri: formData?.attachments[0].url }}
-                              style={styles.image} />
+                            {miValorArregloFotos == 0 ? null : <Image
+                              source={{ uri: img1BotonApretado ? pickedImagePath : formData?.attachments[0]?.url }}
+                              style={styles.image} />}
+
                             {
                               !estadoEdicion ? (
                                 <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.5)', width: '90%', justifyContent: 'center', borderRadius: 7 }}>
-                                  <Pressable onPress={() => console.log('img1')} style={{ marginRight: 10 }}>
+                                  <Pressable onPress={showImagePicker} style={{ marginRight: 10 }}>
                                     <Icon as={Ionicons} size={35} name="image-outline" color={'rgba(0255,255,255,0.8)'} />
                                   </Pressable>
                                   {/* <Pressable style={{ marginLeft: 10 }}>
                                                             <Icon as={Ionicons} size={35} name="camera-outline" color={'rgba(0255,255,255,0.8)'} />
                                                         </Pressable> */}
-                                  <Pressable onPress={() => console.log('img1Setvisible')} style={{ marginLeft: 10 }} >
+                                  <Pressable onPress={() => setisImageViewVisible(true)} style={{ marginLeft: 10 }} >
                                     <Icon as={Ionicons} size={35} name="scan" color={'rgba(0255,255,255,0.8)'} />
                                   </Pressable>
                                 </View>
@@ -471,19 +587,20 @@ const ScreenDetalle = (props) => {
                           alignItems: 'center',
                         }}>
                           <Skeleton h="100%" isLoaded={skeletonLoader}>
-                            <Image
-                              source={{ uri: formData?.attachments[1].url }}
-                              style={styles.image} />
+                            {miValorArregloFotos == 0 ? null : <Image
+                              source={{ uri: img1BotonApretado2 ? pickedImagePath2 : formData?.attachments[1]?.url }}
+                              style={styles.image} />}
+
                             {
                               !estadoEdicion ? (
                                 <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.5)', width: '90%', justifyContent: 'center', borderRadius: 7 }}>
-                                  <Pressable onPress={() => console.log('img2')} style={{ marginRight: 10 }}>
+                                  <Pressable onPress={showImagePicker2} style={{ marginRight: 10 }}>
                                     <Icon as={Ionicons} size={35} name="image-outline" color={'rgba(0255,255,255,0.8)'} />
                                   </Pressable>
                                   {/* <Pressable style={{ marginLeft: 10 }}>
                                                             <Icon as={Ionicons} size={35} name="camera-outline" color={'rgba(0255,255,255,0.8)'} />
                                                         </Pressable> */}
-                                  <Pressable onPress={() => console.log('img2Setvisible')} style={{ marginLeft: 10 }} >
+                                  <Pressable onPress={() => setisImageViewVisible2(true)} style={{ marginLeft: 10 }} >
                                     <Icon as={Ionicons} size={35} name="scan" color={'rgba(0255,255,255,0.8)'} />
                                   </Pressable>
                                 </View>
@@ -513,57 +630,77 @@ const ScreenDetalle = (props) => {
         </ScrollView>
 
       </View>
-      <ActionButton buttonColor="#01286B">
-        <ActionButton.Item buttonColor='#fc6464' title="Salir" onPress={() =>
-          {toast.show({
-            status: "error", title: "Se canceló la operación"
-          }),
-        navigation.goBack()}
-        }
+      {indicatorEstado ?
+        (
+          <View style={{ backgroundColor: 'rgba(0, 0, 0, 0.79)', width: '100%', height: '100%', position: 'absolute', justifyContent: 'center' }}>
+            <Text style={{ color: 'white', textAlign: 'center' }}>GUARDANDO</Text>
+            <ActivityIndicator
+              //visibility of Overlay Loading Spinner
+              visible={indicatorEstado}
+              style={{ marginTop: 20 }}
+              //Text with the Spinner
+              textContent={'Loading...'}
+              size='large'
+              //Text style of the Spinner Text
+              textStyle={{ color: 'white' }}
+            />
+          </View>
+        )
+        : null}
+      {indicatorEstado ? null : (<>
+        <ActionButton buttonColor="#01286B">
+          <ActionButton.Item buttonColor='#fc6464' title="Salir" onPress={() => {
+            toast.show({
+              status: "error", title: "Se canceló la operación"
+            }),
+              navigation.goBack()
+          }
+          }
 
-        >
-          <Icon name="md-close-circle" style={styles.actionButtonIcon} />
-        </ActionButton.Item>
+          >
+            <Icon name="md-close-circle" style={styles.actionButtonIcon} />
+          </ActionButton.Item>
 
-        {
-          estadoEdicion ?
-            <ActionButton.Item buttonColor='#3498db' title="Editar Registro"
-              onPress={() => {
-                setEstadoEdicion(false);
-                toast.show({
-                  status: "info",
-                  title: "Modo Edición"
-                })
-              }} _dark={{
-                bg: "coolGray.800"
-              }} _light={{
-                bg: "white"
-              }}>
-              <Icon name="md-pencil" style={styles.actionButtonIcon} />
-            </ActionButton.Item>
-            :
-            <ActionButton.Item buttonColor='#3498db' title="Editando" onPress={() => toast.show({
-              status: "warning", title: "Ya estas en modo Edición"
-            })} _dark={{
-              bg: "coolGray.800"
-            }} _light={{
-              bg: "white"
-            }}>
-              <Icon name="md-pencil" style={styles.actionButtonIcon} />
-            </ActionButton.Item>
-        }
+          {
+            estadoEdicion ?
+              <ActionButton.Item buttonColor='#3498db' title="Editar Registro"
+                onPress={() => {
+                  setEstadoEdicion(false);
+                  toast.show({
+                    status: "info",
+                    title: "Modo Edición"
+                  })
+                }} _dark={{
+                  bg: "coolGray.800"
+                }} _light={{
+                  bg: "white"
+                }}>
+                <Icon name="md-pencil" style={styles.actionButtonIcon} />
+              </ActionButton.Item>
+              : <></>
+              // <ActionButton.Item buttonColor='#3498db' title="Editando" onPress={() => toast.show({
+              //   status: "warning", title: "Ya estas en modo Edición"
+              // })} _dark={{
+              //   bg: "coolGray.800"
+              // }} _light={{
+              //   bg: "white"
+              // }}>
+              //   <Icon name="md-pencil" style={styles.actionButtonIcon} />
+              // </ActionButton.Item>
+          }
 
-        {
-          estadoEdicion ?
-            (<></>)
-            :
-            <ActionButton.Item buttonColor='#1abc9c' title="Guardar Cambios" onPress={() => { handleSubmit() }}>
-              <Icon name="md-save" style={styles.actionButtonIcon} />
-            </ActionButton.Item>
-        }
+          {
+            estadoEdicion ?
+              (<></>)
+              :
+              <ActionButton.Item buttonColor='#1abc9c' title="Guardar Cambios" onPress={() => { handleSubmit() }}>
+                <Icon name="md-save" style={styles.actionButtonIcon} />
+              </ActionButton.Item>
+          }
 
 
-      </ActionButton>
+        </ActionButton>
+      </>)}
 
       <View style={styles.containerFooter}>
         <View style={{ width: 120, height: 120 }}>
@@ -670,6 +807,25 @@ const ScreenDetalle = (props) => {
           </Button>
         </Card>
       </Modal>
+      <ImageView
+        isSwipeCloseEnabled={true}
+        onClose={() => setisImageViewVisible(false)}
+        images={images}
+        imageIndex={0}
+        isPinchZoomEnabled={true}
+        isVisible={isImageViewVisible}
+
+      />
+      <ImageView
+        isSwipeCloseEnabled={true}
+        onClose={() => setisImageViewVisible2(false)}
+        images={images2}
+        imageIndex={0}
+        isPinchZoomEnabled={true}
+        isVisible={isImageViewVisible2}
+
+      />
+
     </>
   )
 }
@@ -688,8 +844,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 20,
     marginHorizontal: 20,
-
-
 
   },
   actionButtonIcon: {

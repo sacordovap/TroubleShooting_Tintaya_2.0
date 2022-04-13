@@ -25,7 +25,8 @@ const TemplateScreenNoHeader = (props) => {
                    
                     flexDirection: "column",
                     
-                    opacity: fadeAnim,         // Bind opacity to animated value
+                    opacity: fadeAnim,
+                    useNativeDriver: true         // Bind opacity to animated value
                 }}
             >
                 <View style={styles.container2}>
